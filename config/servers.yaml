@@ -1,0 +1,11 @@
+
+vagrant:
+  k8s-master1:
+    vm:
+      ip: 172.18.18.100
+  k8s-node1:
+    vm:
+      ip: 172.18.18.11
+  k8s-node2:
+    vm:
+      ip: 172.18.18.12
