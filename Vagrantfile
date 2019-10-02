@@ -1,11 +1,17 @@
 #
 # based on: https://github.com/andygabby/bionic64-k8s
 #
+# cheat sheet https://gist.github.com/czhujer/428adb509eeabba7c8f6a0f2dea916c1
+#
 require 'json'
 
 Vagrant.require_version ">= 2.0.0"
 
 servers = YAML.load_file(File.join(File.dirname(__FILE__), 'config/servers.yaml'))
+
+#def is_master
+#  name =~ /.*master.*/
+#end
 
 Vagrant.configure('2') do |config|
   config.vm.box = 'generic/ubuntu1804'
@@ -51,12 +57,31 @@ Vagrant.configure('2') do |config|
   # fix dns resolvers
   config.vm.provision :shell, :inline => "sed -i -e 's/4.2.2.2/193.17.47.1/' /etc/netplan/01-netcfg.yaml", :privileged => true
   config.vm.provision :shell, :inline => "sed -i -e 's/4.2.2.1/185.43.135.1/' /etc/netplan/01-netcfg.yaml", :privileged => true
-    config.vm.provision :shell, :inline => "sed -i -e 's/, 208.67.220.220//' /etc/netplan/01-netcfg.yaml", :privileged => true
+  config.vm.provision :shell, :inline => "sed -i -e 's/, 208.67.220.220//' /etc/netplan/01-netcfg.yaml", :privileged => true
 
   config.vm.provision :shell, :inline => "netplan apply", :privileged => true
 
   # run k8s bootstrap
-  config.vm.provision :shell, :inline => "echo 'starting bootstrap kubernetes cluster...'", :privileged => true
-  config.vm.provision :shell, path: 'config/bootstrap-kube.sh', :privileged => true
+  config.vm.provision :shell, :inline => "echo 'starting bootstrap kubernetes cluster...'"
+
+  # run simple bootstrap k8s
+  #config.vm.provision :shell, path: 'config/bootstrap-kube.sh', :privileged => true
+
+  #
+  # run complex bootstrap k8s
+  #
+  config.vm.provision :shell, path: 'config/1-bootstrap-docker.sh', :privileged => true
+
+  servers['vagrant'].each do |name, server_config|
+    config.vm.define name do |host|
+      if name == "k8s-master1"
+        # Configure the master.
+        host.vm.provision :shell, path: 'config/3-initialize-master.sh', :privileged => true
+      else
+      # Configure a node.
+      #host.vm.provision :shell, path: 'config/3-join-node.sh', :privileged => true
+      end
+    end
+  end
 
 end
